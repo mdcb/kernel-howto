@@ -1,0 +1,4 @@
+obj-m += nlk.o
+nlk-y := nlkernel.o
+
+
