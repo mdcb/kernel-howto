@@ -90,7 +90,7 @@ int demo_cmd(struct sk_buff *skb_2, struct genl_info *info)
 	genlmsg_end(skb, msg_head);
 
 	/* send the message back */
-	rc = genlmsg_unicast(&init_net, skb, info->snd_pid);
+	rc = genlmsg_unicast(&init_net, skb, info->snd_portid);
 
 	if (rc != 0) {
 		goto out;
@@ -105,12 +105,14 @@ int demo_cmd(struct sk_buff *skb_2, struct genl_info *info)
 }
 
 /* command mapping */
-struct genl_ops doc_exmpl_gnl_ops_echo = {
+static struct genl_ops doc_exmpl_gnl_ops_echo[] = {
+	{
 	.cmd = DEMO_CMD,
 	.flags = 0,
 	.policy = demo_gnl_policy,
 	.doit = demo_cmd,
 	.dumpit = NULL,
+	},
 };
 
 static int __init nlk_init(void)
@@ -119,17 +121,10 @@ static int __init nlk_init(void)
 	printk("nlk_init\n");
 
 	/* register new family */
-	rc = genl_register_family(&demo_gnl_family);
+	rc = genl_register_family_with_ops(&demo_gnl_family, doc_exmpl_gnl_ops_echo);
 
 	if (rc != 0) {
-		goto failure;
-	}
-
-	/* register functions (commands) of the new family */
-	rc = genl_register_ops(&demo_gnl_family, &doc_exmpl_gnl_ops_echo);
-
-	if (rc != 0) {
-		printk("register ops: %i\n", rc);
+		printk("register family with ops: %i\n", rc);
 		genl_unregister_family(&demo_gnl_family);
 		goto failure;
 	}
@@ -147,14 +142,6 @@ static void __exit nlk_exit(void)
 {
 	int ret;
 	printk("nlk_exit\n");
-	/* unregister the functions */
-	ret =
-	    genl_unregister_ops(&demo_gnl_family, &doc_exmpl_gnl_ops_echo);
-
-	if (ret != 0) {
-		printk("unregister ops: %i\n", ret);
-		return;
-	}
 
 	/* unregister the family */
 	ret = genl_unregister_family(&demo_gnl_family);
